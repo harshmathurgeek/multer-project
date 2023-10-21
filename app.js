@@ -3,7 +3,7 @@ const express=require("express");
 const multer=require('multer');
 const path=require('path')
 const app=express();
-const { getStorage, ref, uploadBytesResumable,downloadURL, getDownloadURL } = require("firebase/storage");
+const { getStorage, ref, uploadBytesResumable,getDownloadURL } = require("firebase/storage");
 
 // const upload=multer({dest:"my-uploads"});
 // Import the functions you need from the SDKs you need
@@ -29,28 +29,23 @@ app.use(express.static('views'))//setting public folder as static which means co
 
 app.set("view engine","ejs");
 app.set("views",path.join(__dirname+'/views'));
-// const storage = multer.diskStorage({
-// 	destination: function (req, file, cb) {
-	// 	  cb(null, './my-uploads')
-// 	},
-// 	filename: function (req, file, cb) {
-	
-// 	  cb(null, `${Date.now()}-${file.originalname}`)
-// 	}
-//   })
-		// const upload = multer({ storage: storage })
+
 app.use(express.urlencoded({extended:false}))
   app.get('/',(req,res)=>{
 	  res.render('index')
 	})
-	app.post('/',upload.single("img"),(req,res)=>{
-	const storageRef = ref(storage, `files/${req.file.originalname + "  "+Math.floor((Math.random() * 1000) + 1)}`);
-
-	uploadBytesResumable(storageRef, req.file.buffer).then((snapshot) => {
+	app.post('/',upload.single("img"),async(req,res)=>{
+	const storageRef = ref(storage, `files/${+Math.floor((Math.random() * 1000) + 1)+"-"+req.file.originalname}`);
+	const metaData={
+		contentType:req.file.mimetype,
+	};
+	uploadBytesResumable(storageRef, req.file.buffer,metaData).then((snapshot) => {
 	  console.log(snapshot);
 	});
-	
-	console.log(req.file);
+	const snapshot=await uploadBytesResumable(storageRef, req.file.buffer,metaData)
+	const downloadurl=await getDownloadURL(snapshot.ref);
+
+	console.log(downloadurl);
 	res.redirect('/');
   })
   
